@@ -1,15 +1,14 @@
 package top.yogiczy.mytv.data.repositories.iptv
 
 import android.content.Context
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
-import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -77,9 +76,9 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
                 return IptvGroupList(groupList.map { group ->
                     IptvGroup(
                         name = group.name,
-                        iptvList = IptvList(group.iptvList.filter { simplifyTest(group, it) })
+                        iptvList = group.iptvList.filter { simplifyTest(group, it) }
                     )
-                }.filter { it.iptvList.list.isNotEmpty() })
+                }.filter { it.iptvList.isNotEmpty() })
             }
 
             return groupList

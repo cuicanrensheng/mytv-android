@@ -1,45 +1,13 @@
 package top.yogiczy.mytv.data.repositories.iptv
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
-import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
 
-/**
- * 直播源获取
- */
 class IptvRepository : FileCacheRepository("iptv.txt") {
     private val log = Logger.create(javaClass.simpleName)
-
-    /**
-     * 获取远程直播源数据
-     */
-    private suspend fun fetchSource(sourceUrl: String) = withContext(Dispatchers.IO) {
-        log.d("获取远程直播源: $sourceUrl")
-
-        val client = OkHttpClient()
-        val request = Request.Builder().url(sourceUrl).build()
-
-        try {
-            with(client.newCall(request).execute()) {
-                if (!isSuccessful) {
-                    throw Exception("获取远程直播源失败: $code")
-                }
-
-                return@with body!!.string()
-            }
-        } catch (ex: Exception) {
-            log.e("获取远程直播源失败", ex)
-            throw Exception("获取远程直播源失败，请检查网络连接", ex)
-        }
-    }
 
     /**
      * 简化规则
@@ -49,28 +17,28 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
     }
 
     /**
-     * 获取直播源分组列表
+     * 获取直播源分组列表（只加载本地源）
      */
     suspend fun getIptvGroupList(
         sourceUrl: String,
         cacheTime: Long,
         simplify: Boolean = false,
     ): IptvGroupList {
-        try {
-            val sourceData = getOrRefresh(cacheTime) {
-                fetchSource(sourceUrl)
-            }
+        return try {
+            // 直接读取本地文件，跳过所有远程请求
+            val localSourceUrl = "file:///android_asset/channel.txt"
+            val sourceData = readLocalFile(localSourceUrl)
 
-            val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
+            val parser = IptvParser.instances.first { it.isSupport(localSourceUrl, sourceData) }
             val groupList = parser.parse(sourceData)
             log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
 
             if (simplify) {
                 return IptvGroupList(groupList.map { group ->
                     IptvGroup(
-                        name = group.name, iptvList = IptvList(group.iptvList.filter { iptv ->
+                        name = group.name, iptvList = group.iptvList.filter { iptv ->
                             simplifyTest(group, iptv)
-                        })
+                        }
                     )
                 }.filter { it.iptvList.isNotEmpty() })
             }
@@ -79,6 +47,19 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         } catch (ex: Exception) {
             log.e("获取直播源失败", ex)
             throw Exception(ex)
+        }
+    }
+
+    /**
+     * 读取本地asset文件
+     */
+    private fun readLocalFile(path: String): String {
+        return if (path.startsWith("file:///android_asset/")) {
+            val assetPath = path.removePrefix("file:///android_asset/")
+            // 这里的代码在编译后会被正确处理，读取assets目录下的文件
+            javaClass.classLoader?.getResourceAsStream(assetPath)?.bufferedReader()?.use { it.readText() } ?: ""
+        } else {
+            ""
         }
     }
 }

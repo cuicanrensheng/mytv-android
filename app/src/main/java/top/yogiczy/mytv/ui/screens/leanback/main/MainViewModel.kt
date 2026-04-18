@@ -36,34 +36,36 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private suspend fun refreshIptv() {
-        flow {
-            emit(
-                iptvRepository.getIptvGroupList(
-                    sourceUrl = SP.iptvSourceUrl,
-                    cacheTime = SP.iptvSourceCacheTime,
-                    simplify = SP.iptvSourceSimplify,
-                )
+    flow {
+        emit(
+            iptvRepository.getIptvGroupList(
+                context = getApplication<Application>(),
+                sourceUrl = SP.iptvSourceUrl,
+                cacheTime = SP.iptvSourceCacheTime,
+                simplify = SP.iptvSourceSimplify
             )
-        }
-            .retryWhen { _, attempt ->
-                if (attempt >= Constants.HTTP_RETRY_COUNT) return@retryWhen false
-
-                _uiState.value =
-                    LeanbackMainUiState.Loading("获取远程直播源(${attempt + 1}/${Constants.HTTP_RETRY_COUNT})...")
-                delay(Constants.HTTP_RETRY_INTERVAL)
-                true
-            }
-            .catch {
-                _uiState.value = LeanbackMainUiState.Error(it.message)
-                SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
-            }
-            .map {
-                _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
-                SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
-                it
-            }
-            .collect()
+        )
     }
+    .retryWhen { _, attempt ->
+        if (attempt >= Constants.HTTP_RETRY_COUNT) return@retryWhen false
+
+        _uiState.value = LeanbackMainUiState.Loading(
+            "获取远程直播源(${attempt + 1}/${Constants.HTTP_RETRY_COUNT})..."
+        )
+        delay(Constants.HTTP_RETRY_INTERVAL)
+        true
+    }
+    .catch {
+        _uiState.value = LeanbackMainUiState.Error(it.message)
+        SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+    }
+    .map { iptvGroupList ->
+        _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = iptvGroupList)
+        SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
+        iptvGroupList
+    }
+    .collect()
+}
 
     private suspend fun refreshEpg() {
         if (_uiState.value is LeanbackMainUiState.Ready) {

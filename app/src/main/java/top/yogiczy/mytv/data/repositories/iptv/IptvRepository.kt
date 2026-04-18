@@ -6,6 +6,7 @@ import okhttp3.Request
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
+import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
@@ -71,20 +72,27 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
             val groupList = parser.parse(sourceData)
             
-            // 修正：用flatMap的方式获取频道总数，同时兼容IptvGroup结构
-            val channelCount = groupList.sumOf { it.iptvList.size }
-            log.i("解析直播源完成：${groupList.size}个分组，${channelCount}个频道")
-
-            if (simplify) {
-                return IptvGroupList(groupList.map { group ->
+            // 修正：把 List<Iptv> 包装成 IptvList，解决类型不匹配
+            val fixedGroupList = if (simplify) {
+                IptvGroupList(groupList.map { group ->
                     IptvGroup(
                         name = group.name,
-                        iptvList = group.iptvList.filter { simplifyTest(group, it) }
+                        iptvList = IptvList(group.iptvList.filter { simplifyTest(group, it) })
                     )
-                }.filter { it.iptvList.isNotEmpty() })
+                }.filter { it.iptvList.list.isNotEmpty() })
+            } else {
+                IptvGroupList(groupList.map { group ->
+                    IptvGroup(
+                        name = group.name,
+                        iptvList = IptvList(group.iptvList)
+                    )
+                })
             }
 
-            return groupList
+            val channelCount = fixedGroupList.sumOf { it.iptvList.list.size }
+            log.i("解析直播源完成：${fixedGroupList.size}个分组，${channelCount}个频道")
+
+            return fixedGroupList
         } catch (ex: Exception) {
             log.e("获取直播源失败", ex)
             throw Exception(ex)

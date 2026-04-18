@@ -1,6 +1,7 @@
 package top.yogiczy.mytv.ui.screens.leanback.main
+
 import android.app.Application
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,7 @@ import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.utils.SP
 
-class LeanbackMainViewModel : ViewModel() {
+class LeanbackMainViewModel(application: Application) : AndroidViewModel(application) {
     private val iptvRepository = IptvRepository()
     private val epgRepository = EpgRepository()
 
@@ -36,36 +37,36 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private suspend fun refreshIptv() {
-    flow {
-        emit(
-            iptvRepository.getIptvGroupList(
-                context = getApplication<Application>(),
-                sourceUrl = SP.iptvSourceUrl,
-                cacheTime = SP.iptvSourceCacheTime,
-                simplify = SP.iptvSourceSimplify
+        flow {
+            emit(
+                iptvRepository.getIptvGroupList(
+                    context = getApplication<Application>(),
+                    sourceUrl = SP.iptvSourceUrl,
+                    cacheTime = SP.iptvSourceCacheTime,
+                    simplify = SP.iptvSourceSimplify
+                )
             )
-        )
-    }
-    .retryWhen { _, attempt ->
-        if (attempt >= Constants.HTTP_RETRY_COUNT) return@retryWhen false
+        }
+        .retryWhen { _, attempt ->
+            if (attempt >= Constants.HTTP_RETRY_COUNT) return@retryWhen false
 
-        _uiState.value = LeanbackMainUiState.Loading(
-            "获取远程直播源(${attempt + 1}/${Constants.HTTP_RETRY_COUNT})..."
-        )
-        delay(Constants.HTTP_RETRY_INTERVAL)
-        true
+            _uiState.value = LeanbackMainUiState.Loading(
+                "获取远程直播源(${attempt + 1}/${Constants.HTTP_RETRY_COUNT})..."
+            )
+            delay(Constants.HTTP_RETRY_INTERVAL)
+            true
+        }
+        .catch {
+            _uiState.value = LeanbackMainUiState.Error(it.message)
+            SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+        }
+        .map { iptvGroupList ->
+            _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = iptvGroupList)
+            SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
+            iptvGroupList
+        }
+        .collect()
     }
-    .catch {
-        _uiState.value = LeanbackMainUiState.Error(it.message)
-        SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
-    }
-    .map { iptvGroupList ->
-        _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = iptvGroupList)
-        SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
-        iptvGroupList
-    }
-    .collect()
-}
 
     private suspend fun refreshEpg() {
         if (_uiState.value is LeanbackMainUiState.Ready) {
@@ -80,17 +81,17 @@ class LeanbackMainViewModel : ViewModel() {
                     )
                 )
             }
-                .retry(Constants.HTTP_RETRY_COUNT) { delay(Constants.HTTP_RETRY_INTERVAL); true }
-                .catch {
-                    emit(EpgList())
-                    SP.epgXmlUrlHistoryList -= SP.epgXmlUrl
-                }
-                .map { epgList ->
-                    _uiState.value =
-                        (_uiState.value as LeanbackMainUiState.Ready).copy(epgList = epgList)
-                    SP.epgXmlUrlHistoryList += SP.epgXmlUrl
-                }
-                .collect()
+            .retry(Constants.HTTP_RETRY_COUNT) { delay(Constants.HTTP_RETRY_INTERVAL); true }
+            .catch {
+                emit(EpgList())
+                SP.epgXmlUrlHistoryList -= SP.epgXmlUrl
+            }
+            .map { epgList ->
+                _uiState.value = (_uiState.value as LeanbackMainUiState.Ready).copy(epgList = epgList)
+                SP.epgXmlUrlHistoryList += SP.epgXmlUrl
+                epgList
+            }
+            .collect()
         }
     }
 }

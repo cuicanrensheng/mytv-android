@@ -6,7 +6,6 @@ import okhttp3.Request
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
-import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
@@ -71,15 +70,18 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
 
             val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
             val groupList = parser.parse(sourceData)
-            log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList.list }.size}个频道")
+            
+            // 修正：用flatMap的方式获取频道总数，同时兼容IptvGroup结构
+            val channelCount = groupList.sumOf { it.iptvList.size }
+            log.i("解析直播源完成：${groupList.size}个分组，${channelCount}个频道")
 
             if (simplify) {
                 return IptvGroupList(groupList.map { group ->
                     IptvGroup(
                         name = group.name,
-                        iptvList = IptvList(group.iptvList.filter { simplifyTest(group, it) })
+                        iptvList = group.iptvList.filter { simplifyTest(group, it) }
                     )
-                }.filter { it.iptvList.list.isNotEmpty() })
+                }.filter { it.iptvList.isNotEmpty() })
             }
 
             return groupList

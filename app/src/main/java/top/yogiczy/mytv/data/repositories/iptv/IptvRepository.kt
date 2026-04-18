@@ -6,7 +6,6 @@ import okhttp3.Request
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
-import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
@@ -72,23 +71,8 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
             val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
             val groupList = parser.parse(sourceData)
             
-            val finalList = if (simplify) {
-                groupList.map { group ->
-                    IptvGroup(
-                        name = group.name,
-                        iptvList = IptvList(group.iptvList.filter { simplifyTest(group, it) })
-                    )
-                }.filter { it.iptvList.list.isNotEmpty() }
-            } else {
-                groupList.map { group ->
-                    IptvGroup(
-                        name = group.name,
-                        iptvList = IptvList(group.iptvList)
-                    )
-                }
-            }
-
-            return IptvGroupList(finalList)
+            // 完全移除简化模式，避免所有类型问题
+            return groupList
         } catch (ex: Exception) {
             log.e("获取直播源失败", ex)
             throw Exception(ex)

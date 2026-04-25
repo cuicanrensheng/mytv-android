@@ -40,8 +40,8 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
     }
 
     suspend fun getIptvGroupList(
-        sourceUrl: String = Constants.DEFAULT_IPTV_URL,
-        cacheTime: Long,
+        sourceUrl: String = Constants.IPTV_SOURCE_URL,
+        cacheTime: Long = Constants.IPTV_SOURCE_CACHE_TIME,
         simplify: Boolean = false,
     ): IptvGroupList {
         return try {

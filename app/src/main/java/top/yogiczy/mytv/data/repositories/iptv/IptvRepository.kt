@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import top.yogiczy.mytv.Constants
 import top.yogiczy.mytv.data.entities.Iptv
 import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
@@ -11,74 +12,57 @@ import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.iptv.parser.IptvParser
 import top.yogiczy.mytv.utils.Logger
+import java.util.concurrent.TimeUnit
 
-/**
- * 直播源获取
- */
 class IptvRepository : FileCacheRepository("iptv.txt") {
     private val log = Logger.create(javaClass.simpleName)
 
-    /**
-     * 获取远程直播源数据
-     */
-    private suspend fun fetchSource(sourceUrl: String) = withContext(Dispatchers.IO) {
-        log.d("获取远程直播源: $sourceUrl")
-
-        val client = OkHttpClient()
-        val request = Request.Builder().url(sourceUrl).build()
-
-        try {
-            with(client.newCall(request).execute()) {
-                if (!isSuccessful) {
-                    throw Exception("获取远程直播源失败: $code")
-                }
-
-                return@with body!!.string()
-            }
-        } catch (ex: Exception) {
-            log.e("获取远程直播源失败", ex)
-            throw Exception("获取远程直播源失败，请检查网络连接", ex)
-        }
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
 
-    /**
-     * 简化规则
-     */
+    private suspend fun fetchSource(sourceUrl: String) = withContext(Dispatchers.IO) {
+        log.d("加载直播源: $sourceUrl")
+        val request = Request.Builder().url(sourceUrl).build()
+        val response = okHttpClient.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw RuntimeException("链接访问失败：${response.code}")
+        }
+        response.body?.string() ?: throw RuntimeException("直播源内容为空")
+    }
+
     private fun simplifyTest(group: IptvGroup, iptv: Iptv): Boolean {
         return iptv.name.lowercase().startsWith("cctv") || iptv.name.endsWith("卫视")
     }
 
-    /**
-     * 获取直播源分组列表
-     */
     suspend fun getIptvGroupList(
-        sourceUrl: String,
+        sourceUrl: String = Constants.DEFAULT_IPTV_URL,
         cacheTime: Long,
         simplify: Boolean = false,
     ): IptvGroupList {
-        try {
-            val sourceData = getOrRefresh(cacheTime) {
-                fetchSource(sourceUrl)
-            }
-
+        return try {
+            val sourceData = getOrRefresh(cacheTime) { fetchSource(sourceUrl) }
             val parser = IptvParser.instances.first { it.isSupport(sourceUrl, sourceData) }
             val groupList = parser.parse(sourceData)
-            log.i("解析直播源完成：${groupList.size}个分组，${groupList.flatMap { it.iptvList }.size}个频道")
+            log.i("频道解析完成，共${groupList.size}个分组")
 
             if (simplify) {
-                return IptvGroupList(groupList.map { group ->
+                IptvGroupList(groupList.map { g ->
                     IptvGroup(
-                        name = group.name, iptvList = IptvList(group.iptvList.filter { iptv ->
-                            simplifyTest(group, iptv)
-                        })
+                        name = g.name,
+                        iptvList = IptvList(g.iptvList.filter { simplifyTest(g, it) })
                     )
                 }.filter { it.iptvList.isNotEmpty() })
+            } else {
+                groupList
             }
-
-            return groupList
-        } catch (ex: Exception) {
-            log.e("获取直播源失败", ex)
-            throw Exception(ex)
+        } catch (e: Exception) {
+            log.e("直播源加载异常", e)
+            throw e
         }
     }
 }

@@ -17,7 +17,7 @@ object Constants {
     /**
      * IPTV源地址
      */
-    const val IPTV_SOURCE_URL = "http://1.2.3.4/live.m3u"
+    const val IPTV_SOURCE_URL = "https://raw.githubusercontent.com/cuicanrensheng/IPTV/refs/heads/main/playlist%20.m3u"
 
     /**
      * IPTV源缓存时间（毫秒）

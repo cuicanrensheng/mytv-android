@@ -18,10 +18,12 @@ class M3uParser {
     var currentIndex = 0
     var isShowCollect = false
 
-    // 初始化默认订阅源
+    // ===================== 你的固定直播源 =====================
+    // 【已写入】https://gitee.com/qf_1111/iptv/raw/master/playlist.m3u
     fun initDefaultSource() {
         parseSource("https://gitee.com/qf_1111/iptv/raw/master/playlist.m3u")
     }
+    // =========================================================
 
     // 解析订阅源，支持 M3U / TVBox 格式
     fun parseSource(url: String) {

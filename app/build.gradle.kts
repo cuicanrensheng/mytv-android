@@ -78,20 +78,17 @@ android {
     }
 }
 
-// ====================== 【终极强制锁定，优先级最高】 ======================
+// ====================== 【Kotlin DSL 专用强制锁定】 ======================
 configurations.all {
-    resolutionStrategy {
-        // 强制锁定 xmlpull 版本，任何依赖都不能修改
-        force 'org.xmlpull:xmlpull:1.1.3.1'
-        eachDependency { dep ->
-            if (dep.requested.group == 'org.xmlpull' && dep.requested.name == 'xmlpull') {
-                dep.useVersion('1.1.3.1')
-            }
+    resolutionStrategy.force("org.xmlpull:xmlpull:1.1.3.1")
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == "org.xmlpull" && details.requested.name == "xmlpull") {
+            details.useVersion("1.1.3.1")
         }
     }
 }
 
-// 直接禁用报错的任务，彻底绕开校验
+// 禁用报错任务
 tasks.named("mapReleaseSourceSetPaths") {
     enabled = false
 }
@@ -124,13 +121,12 @@ dependencies {
     // 序列化
     implementation(libs.kotlinx.serialization)
 
-    // 网络请求：重点！排除 xmlpull
+    // 网络请求：排除 xmlpull 冲突
     implementation(libs.okhttp)
-    implementation('com.koushikdutta.async:androidasync:2.2.0') {
-        exclude group: 'org.xmlpull', module: 'xmlpull'
+    implementation("com.koushikdutta.async:androidasync:2.2.0") {
+        exclude(group = "org.xmlpull", module = "xmlpull")
     }
-    // 手动引入正确版本
-    implementation 'org.xmlpull:xmlpull:1.1.3.1'
+    implementation("org.xmlpull:xmlpull:1.1.3.1")
 
     // 二维码
     implementation(libs.qrose)

@@ -59,6 +59,8 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // 新增：彻底排除 xmlpull
+        exclude group: "org.xmlpull", module: "xmlpull"
     }
     signingConfigs {
         create("release") {
@@ -80,9 +82,7 @@ android {
 
 
 dependencies {
-    constraints {
-    implementation("org.xmlpull:xmlpull:1.1.3.4")
- }
+    // 删掉了整个 constraints 块，彻底移除 xmlpull
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -1,49 +1,101 @@
-package com.tviptv
+package top.yogiczy.mytv.activities
 
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.tviptv.player.PlayerManager
-import com.tviptv.web.WebServer
+import top.yogiczy.mytv.data.SettingManager
+import top.yogiczy.mytv.data.SourceManager
+import top.yogiczy.mytv.m3u.M3uParser
+import top.yogiczy.mytv.player.PlayerManager
+import top.yogiczy.mytv.web.WebServer
+import java.util.Timer
+import java.util.TimerTask
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var player: PlayerManager
+    private lateinit var m3uParser: M3uParser
     private lateinit var webServer: WebServer
+    private var doubleTapTime = 0L
+    private var numberBuffer = ""
+    private var numberTimer: Timer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 启动10481网页配置服务
-        webServer = WebServer()
+        SettingManager.init(this)
+        SourceManager.init(this)
+
+        webServer = WebServer(this)
         webServer.start()
 
-        // 初始化播放器、直播源、多线路、收藏、EPG
-        player = PlayerManager(this)
-        player.initDefaultSource("https://gitee.com/qf_1111/iptv/raw/master/playlist.m3u")
+        m3uParser = M3uParser()
+        m3uParser.initDefaultSource()
+        player = PlayerManager(this, m3uParser)
+        player.playCurrentChannel()
     }
 
-    // 遥控器按键映射（严格按你的需求）
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> { player.prevChannel(); true }
-            KeyEvent.KEYCODE_DPAD_DOWN -> { player.nextChannel(); true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> { player.switchLinePrev(); true }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> { player.switchLineNext(); true }
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {
-                if (event?.isLongPress == true) player.collectChannel()
-                else player.selectChannel()
-                true
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> player.prevChannel()
+            KeyEvent.KEYCODE_DPAD_DOWN -> player.nextChannel()
+            KeyEvent.KEYCODE_DPAD_LEFT -> player.switchLinePrev()
+            KeyEvent.KEYCODE_DPAD_RIGHT -> player.switchLineNext()
+
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (event.isLongPress) player.toggleCollect()
             }
-            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_HELP -> { player.showEpg(); true }
-            else -> super.onKeyDown(keyCode, event)
+
+            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_HELP -> {
+                showEpg()
+            }
+
+            in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
+                numberBuffer += (keyCode - KeyEvent.KEYCODE_0)
+                numberTimer?.cancel()
+                numberTimer = Timer().apply {
+                    schedule(object : TimerTask() {
+                        override fun run() {
+                            val num = numberBuffer.toIntOrNull()
+                            num?.let { player.jumpChannel(it - 1) }
+                            numberBuffer = ""
+                        }
+                    }, 800)
+                }
+            }
+
+            else -> return super.onKeyDown(keyCode, event)
         }
+        return true
     }
 
-    // 触屏映射
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_UP -> {
+                val now = System.currentTimeMillis()
+                if (now - doubleTapTime < 300) {
+                    showEpg()
+                } else {
+                    doubleTapTime = now
+                }
+            }
+            MotionEvent.ACTION_LONG_PRESS -> {
+                player.toggleCollect()
+            }
+        }
         return player.handleTouch(event)
+    }
+
+    private fun showEpg() {
+        val channel = m3uParser.getCurrentChannel() ?: return
+        val epgList = top.yogiczy.mytv.epg.EpgManager.getTodayEpg(channel.name)
+        Toast.makeText(this, "今日节目单已打开", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        player.release()
     }
 }

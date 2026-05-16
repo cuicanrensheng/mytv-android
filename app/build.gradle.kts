@@ -8,9 +8,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-tasks.named("checkReleaseAarMetadata") {
-    it.enabled = false
-
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
@@ -62,8 +59,7 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
-        // 新增：彻底排除 xmlpull
-        exclude group: "org.xmlpull", module: "xmlpull"
+        // 删掉这里的 xmlpull 排除，没用
     }
     signingConfigs {
         create("release") {
@@ -83,9 +79,12 @@ android {
     }
 }
 
+// 正确写法：解析阶段直接排除，语法正确、括号完整
+configurations["releaseRuntimeClasspath"] {
+    exclude(group = "org.xmlpull", module = "xmlpull")
+}
 
 dependencies {
-    // 删掉了整个 constraints 块，彻底移除 xmlpull
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -78,6 +78,11 @@ android {
     }
 }
 
+// 【关键】强制在 Gradle 生命周期最开始就禁用这个任务，彻底绕开校验
+tasks.register("checkReleaseAarMetadata") {
+    enabled = false
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

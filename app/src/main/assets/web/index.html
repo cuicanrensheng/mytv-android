@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TVIPTV 自定义设置</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+<style>
+body{font-family:Arial;margin:20px;background:#1a1a1a;color:#fff}
+.item{margin:15px 0;padding:10px;border:1px solid #444;border-radius:8px}
+input,textarea{width:95%;padding:8px;margin:8px 0;background:#2d2d2d;color:#fff;border:1px solid #555;border-radius:4px}
+button{padding:10px 20px;background:#007bff;border:none;border-radius:4px;color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+    <h2>TVIPTV 网页配置中心（{{deviceIp}}:10481）</h2>
+    <div class="item">
+        <h3>自定义订阅源（M3U/TVBox）</h3>
+        <textarea v-model="iptvSource" placeholder="输入订阅源地址，一行一个"></textarea>
+        <button @click="saveSource">保存订阅源（重启生效）</button>
+    </div>
+    <div class="item">
+        <h3>自定义节目单（XML/XML.GZ）</h3>
+        <textarea v-model="epgSource" placeholder="输入EPG地址"></textarea>
+        <button @click="saveEpg">保存节目单（重启生效）</button>
+    </div>
+    <div class="item">
+        <h3>全局设置</h3>
+        <p>换台反转：<input type="checkbox" v-model="reverseChannel"></p>
+        <p>缓存时间(秒)：<input type="number" v-model="cacheTime"></p>
+        <p>开机自启：<input type="checkbox" v-model="bootStart"></p>
+        <button @click="saveSetting">保存设置</button>
+    </div>
+</div>
+<script>
+new Vue({
+    el:'#app',
+    data(){
+        return{
+            deviceIp:window.location.hostname,
+            iptvSource:'',
+            epgSource:'',
+            reverseChannel:false,
+            cacheTime:300,
+            bootStart:true
+        }
+    },
+    methods:{
+        saveSource(){
+            axios.post('/api/saveSource',{source:this.iptvSource})
+            alert('订阅源保存成功，重启APP生效')
+        },
+        saveEpg(){
+            axios.post('/api/saveEpg',{epg:this.epgSource})
+            alert('节目单保存成功，重启APP生效')
+        },
+        saveSetting(){
+            axios.post('/api/saveSetting',{
+                reverse:this.reverseChannel,
+                cache:this.cacheTime,
+                boot:this.bootStart
+            })
+            alert('设置保存成功')
+        }
+    }
+})
+</script>
+</body>
+</html>

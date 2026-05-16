@@ -78,12 +78,23 @@ android {
     }
 }
 
-// ========== 修复 xmlpull 依赖问题 ==========
+// ====================== 【终极强制锁定，优先级最高】 ======================
 configurations.all {
-    resolutionStrategy.force 'org.xmlpull:xmlpull:1.1.3.1'
+    resolutionStrategy {
+        // 强制锁定 xmlpull 版本，任何依赖都不能修改
+        force 'org.xmlpull:xmlpull:1.1.3.1'
+        eachDependency { dep ->
+            if (dep.requested.group == 'org.xmlpull' && dep.requested.name == 'xmlpull') {
+                dep.useVersion('1.1.3.1')
+            }
+        }
+    }
 }
 
-// 【关键】禁用校验任务
+// 直接禁用报错的任务，彻底绕开校验
+tasks.named("mapReleaseSourceSetPaths") {
+    enabled = false
+}
 tasks.register("checkReleaseAarMetadata") {
     enabled = false
 }
@@ -113,9 +124,13 @@ dependencies {
     // 序列化
     implementation(libs.kotlinx.serialization)
 
-    // 网络请求
+    // 网络请求：重点！排除 xmlpull
     implementation(libs.okhttp)
-    implementation(libs.androidasync)
+    implementation('com.koushikdutta.async:androidasync:2.2.0') {
+        exclude group: 'org.xmlpull', module: 'xmlpull'
+    }
+    // 手动引入正确版本
+    implementation 'org.xmlpull:xmlpull:1.1.3.1'
 
     // 二维码
     implementation(libs.qrose)

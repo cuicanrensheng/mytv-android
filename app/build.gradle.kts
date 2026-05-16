@@ -1,10 +1,9 @@
-// ========== 方案1 新增：仓库配置，必须放在最顶部 ==========
 repositories {
     google()
     mavenCentral()
     maven { url = uri("https://maven.aliyun.com/repository/public") }
+    mavenCentral()
 }
-// ==========================================================
 
 import java.io.FileInputStream
 import java.util.Properties

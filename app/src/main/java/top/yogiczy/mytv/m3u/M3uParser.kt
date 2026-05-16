@@ -1,6 +1,7 @@
 package top.yogiczy.mytv.m3u
 
 import com.google.gson.Gson
+import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import top.yogiczy.mytv.data.SettingManager
@@ -8,9 +9,16 @@ import top.yogiczy.mytv.data.SourceManager
 import java.util.concurrent.TimeUnit
 
 class M3uParser {
+    // ========== 已补齐明文HTTP支持 ==========
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        // 关键：同时支持 明文HTTP + HTTPS
+        .connectionSpecs(listOf(
+            ConnectionSpec.CLEARTEXT,       // 明文HTTP
+            ConnectionSpec.MODERN_TLS,      // 现代HTTPS
+            ConnectionSpec.COMPATIBLE_TLS   // 兼容旧版HTTPS
+        ))
         .build()
 
     private val gson = Gson()
@@ -25,7 +33,7 @@ class M3uParser {
     }
     // =========================================================
 
-    // 解析订阅源，支持 M3U / TVBox 格式
+    // 解析订阅源，支持 M3U / TVBox 格式（http/https 都能解析）
     fun parseSource(url: String) {
         try {
             val request = Request.Builder().url(url).build()

@@ -78,13 +78,6 @@ android {
     }
 }
 
-// 直接禁用这个校验任务，绕开 xmlpull 依赖问题
-tasks.whenTaskAdded {
-    if (name == "checkReleaseAarMetadata") {
-        enabled = false
-    }
-}
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

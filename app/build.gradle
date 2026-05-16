@@ -1,14 +1,14 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    namespace "com.ku9.tvbox"
+    namespace "com.tviptv"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.ku9.tvbox"
+        applicationId "com.tviptv"
         minSdk 21
         targetSdk 34
         versionCode 1
@@ -18,35 +18,18 @@ android {
     }
 
     buildTypes {
-        debug {
-            minifyEnabled false
-            shrinkResources false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
         release {
             minifyEnabled false
-            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-
     kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    // 关键：解决AAPT2资源报错、跳过严格校验
-    buildFeatures {
-        viewBinding true
-    }
-
-    lint {
-        checkReleaseBuilds false
-        abortOnError false
+        jvmTarget = '17'
     }
 }
 
@@ -56,14 +39,17 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // 播放器、tvbox常用基础依赖
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    // ExoPlayer 播放器
+    implementation "androidx.media3:media3-exoplayer:1.4.0"
+    implementation "androidx.media3:media3-ui:1.4.0"
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    // 网络
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // 网页服务 10481端口
+    implementation "io.ktor:ktor-server-netty-jvm:2.3.3"
+    implementation "io.ktor:ktor-server-core-jvm:2.3.3"
+
+    // 解析 m3u、xml
+    implementation 'org.xmlpull:xmlpull:1.1.3.1'
 }

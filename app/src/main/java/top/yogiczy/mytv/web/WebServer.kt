@@ -1,35 +1,41 @@
-package com.tviptv.web
+package top.yogiczy.mytv.web
 
+import top.yogiczy.mytv.data.SettingManager
+import top.yogiczy.mytv.data.SourceManager
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.request.*
+import android.content.Context
 
-class WebServer {
+class WebServer(private val context: Context) {
     fun start() {
         Thread {
             embeddedServer(Netty, port = 10481) {
                 routing {
                     get("/") {
-                        call.respondText(
-                            """
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-<title>TVIPTV 设置</title>
-</head>
-<body>
-<div id="app">
-<h2>自定义订阅源、节目单、缓存设置</h2>
-<!-- 完整配置页面我后续给你补全 -->
-</div>
-</body>
-</html>
-""", contentType = io.ktor.http.ContentType.Text.Html
-                        )
+                        val html = context.assets.open("web/index.html")
+                            .bufferedReader().use { it.readText() }
+                        call.respondText(html, io.ktor.http.ContentType.Text.Html)
+                    }
+                    post("/api/saveSource") {
+                        val body = call.receive<Map<String,String>>()
+                        SourceManager.saveCustomSource(body["source"] ?: "")
+                        call.respondText("ok")
+                    }
+                    post("/api/saveEpg") {
+                        val body = call.receive<Map<String,String>>()
+                        SourceManager.saveCustomEpg(body["epg"] ?: "")
+                        call.respondText("ok")
+                    }
+                    post("/api/saveSetting") {
+                        val body = call.receive<Map<String,Any>>()
+                        SettingManager.reverseChannel = body["reverse"] as Boolean
+                        SettingManager.cacheTime = (body["cache"] as Number).toInt()
+                        SettingManager.bootStart = body["boot"] as Boolean
+                        call.respondText("ok")
                     }
                 }
             }.start(wait = false)

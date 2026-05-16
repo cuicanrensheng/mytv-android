@@ -1,10 +1,3 @@
-repositories {
-    google()
-    mavenCentral()
-    maven { url = uri("https://maven.aliyun.com/repository/public") }
-    mavenCentral()
-}
-
 import java.io.FileInputStream
 import java.util.Properties
 

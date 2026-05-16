@@ -78,7 +78,12 @@ android {
     }
 }
 
-// 【关键】强制在 Gradle 生命周期最开始就禁用这个任务，彻底绕开校验
+// ========== 修复 xmlpull 依赖问题 ==========
+configurations.all {
+    resolutionStrategy.force 'org.xmlpull:xmlpull:1.1.3.1'
+}
+
+// 【关键】禁用校验任务
 tasks.register("checkReleaseAarMetadata") {
     enabled = false
 }

@@ -1,4 +1,4 @@
-name: TV IPTV Auto Build
+name: MyTV Android Build
 on:
   push:
     branches: [ main ]
@@ -25,10 +25,10 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload Artifact
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: TVIPTV_Release
+          name: MyTV_Release
           path: app/build/outputs/apk/release/*.apk
 
       - name: Create Release

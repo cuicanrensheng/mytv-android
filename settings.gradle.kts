@@ -1,20 +1,18 @@
 pluginManagement {
     repositories {
-        // 阿里云镜像（Kotlin DSL 正确写法）
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        // 优先用公共库，避免阿里云Google源502
         maven { url = uri("https://maven.aliyun.com/repository/public") }
-        mavenCentral()
         google()
+        mavenCentral()
     }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }
-        mavenCentral()
         google()
+        mavenCentral()
     }
 }
 

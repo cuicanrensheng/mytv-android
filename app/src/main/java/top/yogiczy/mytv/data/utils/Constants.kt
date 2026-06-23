@@ -17,7 +17,7 @@ object Constants {
     /**
      * IPTV源地址
      */
-    const val IPTV_SOURCE_URL = "http://1.2.3.4/live.m3u"
+    const val IPTV_SOURCE_URL = "https://raw.githubusercontent.com/cuicanrensheng/IPTV/refs/heads/main/playlist1.m3u"
 
     /**
      * IPTV源缓存时间（毫秒）
@@ -41,9 +41,37 @@ object Constants {
         "https://api.github.com/repos/yaoxieyoulei/mytv-android/releases/latest"
 
     /**
-     * GitHub加速代理地址
+     * GitHub加速代理地址（旧版，保留兼容）
      */
     const val GITHUB_PROXY = "https://mirror.ghproxy.com/"
+
+    // ====================================================================
+    // ✅ GitHub 加速相关配置
+    // ====================================================================
+
+    /**
+     * GitHub加速源类型
+     */
+    enum class GithubAccelerateType {
+        /** jsDelivr CDN（推荐，全球加速，国内也快） */
+        JSDELIVR,
+        /** ghproxy（GitHub 反向代理） */
+        GHPROXY,
+        /** gitmirror（GitHub 镜像站） */
+        GITMIRROR,
+        /** 不加速（直连） */
+        NONE
+    }
+
+    /**
+     * 默认使用的加速源（jsDelivr 效果最好）
+     */
+    val DEFAULT_GITHUB_ACCELERATE_TYPE = GithubAccelerateType.JSDELIVR
+
+    /**
+     * 默认是否启用 GitHub 加速
+     */
+    const val DEFAULT_GITHUB_ACCELERATE_ENABLED = true
 
     /**
      * HTTP请求重试次数
